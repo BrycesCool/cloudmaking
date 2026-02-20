@@ -112,7 +112,39 @@ function Slider({ label, value, onChange, min, max, step = 0.1 }) {
   )
 }
 
-function CloudScene({ params }) {
+// Placeholder card component
+function ProjectCard({ position, index }) {
+  return (
+    <mesh position={position}>
+      <planeGeometry args={[3.5, 4.5]} />
+      <meshStandardMaterial
+        color="#1a1a2e"
+        transparent
+        opacity={0.9}
+      />
+      {/* Card border */}
+      <lineSegments position={[0, 0, 0.01]}>
+        <edgesGeometry args={[new THREE.PlaneGeometry(3.5, 4.5)]} />
+        <lineBasicMaterial color="#3a3a5a" />
+      </lineSegments>
+      {/* Card number text placeholder */}
+      <mesh position={[0, 0, 0.02]}>
+        <planeGeometry args={[2.5, 0.4]} />
+        <meshBasicMaterial color="#2a2a4a" />
+      </mesh>
+      <mesh position={[0, -1.5, 0.02]}>
+        <planeGeometry args={[2.8, 0.3]} />
+        <meshBasicMaterial color="#252540" />
+      </mesh>
+      <mesh position={[0, -1.9, 0.02]}>
+        <planeGeometry args={[2.2, 0.2]} />
+        <meshBasicMaterial color="#252540" />
+      </mesh>
+    </mesh>
+  )
+}
+
+function CloudScene({ params, showCards, cardZ, cardSpacing, cardY }) {
   const cloudsRef = useRef()
 
   // Generate cloud positions based on seed
@@ -124,6 +156,13 @@ function CloudScene({ params }) {
     const y = Math.sin(seedOffset) * 2
     const z = Math.cos(seedOffset) * 3
     cloudConfigs.push({ seedOffset, position: [x, y, z] })
+  }
+
+  // 6 card positions in a single row
+  const cardPositions = []
+  for (let i = 0; i < 6; i++) {
+    const x = (i - 2.5) * cardSpacing
+    cardPositions.push([x, cardY, cardZ])
   }
 
   return (
@@ -138,6 +177,11 @@ function CloudScene({ params }) {
         minDistance={5}
         maxDistance={50}
       />
+
+      {/* Project cards behind clouds */}
+      {showCards && cardPositions.map((pos, i) => (
+        <ProjectCard key={i} position={pos} index={i} />
+      ))}
 
       <Clouds ref={cloudsRef} limit={400}>
         {cloudConfigs.map((config, i) => (
@@ -207,6 +251,10 @@ export default function App() {
   const [activePreset, setActivePreset] = useState("Soft & Dreamy")
   const [copied, setCopied] = useState(false)
   const [showCode, setShowCode] = useState(false)
+  const [showCards, setShowCards] = useState(true)
+  const [cardZ, setCardZ] = useState(-5)
+  const [cardSpacing, setCardSpacing] = useState(4.5)
+  const [cardY, setCardY] = useState(0)
 
   const update = (key, value) => {
     setParams(p => ({ ...p, [key]: value }))
@@ -334,6 +382,45 @@ export default function App() {
               />
             </div>
           </div>
+
+          {/* Show Cards Toggle */}
+          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #1a1a3a' }}>
+            <div style={{ fontSize: 10, color: '#556', marginBottom: 10, fontFamily: 'monospace' }}>PROJECT CARDS</div>
+            <button
+              onClick={() => setShowCards(!showCards)}
+              style={{
+                width: '100%',
+                padding: '10px',
+                fontSize: 11,
+                fontFamily: 'monospace',
+                background: showCards ? 'rgba(126,232,250,0.15)' : 'transparent',
+                border: `1px solid ${showCards ? '#7ee8fa' : '#2a2a4a'}`,
+                borderRadius: 6,
+                color: showCards ? '#7ee8fa' : '#667',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                marginBottom: 12,
+              }}
+            >
+              <span style={{ fontSize: 14 }}>{showCards ? '◼' : '◻'}</span>
+              Show Project Cards
+            </button>
+
+            {showCards && (
+              <>
+                <Slider label="Card Depth (Z)" value={cardZ} onChange={setCardZ} min={-20} max={5} step={0.5} />
+                <Slider label="Card Spacing" value={cardSpacing} onChange={setCardSpacing} min={2} max={8} step={0.5} />
+                <Slider label="Card Height (Y)" value={cardY} onChange={setCardY} min={-10} max={10} step={0.5} />
+              </>
+            )}
+
+            <p style={{ fontSize: 9, color: '#445', marginTop: 6, textAlign: 'center' }}>
+              6 cards in a row to visualize your portfolio
+            </p>
+          </div>
         </div>
       </div>
 
@@ -379,7 +466,7 @@ export default function App() {
             flat
             camera={{ position: [0, 0, 20], fov: 75 }}
           >
-            <CloudScene params={params} />
+            <CloudScene params={params} showCards={showCards} cardZ={cardZ} cardSpacing={cardSpacing} cardY={cardY} />
           </Canvas>
         </div>
 
