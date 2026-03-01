@@ -1,15 +1,32 @@
 'use client'
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Hero from "@/components/Hero";
 import FallingStickFigure, { FallingStickFigureRef } from "@/components/FallingStickFigure";
 import GlassShatter, { GlassShatterRef } from "@/components/GlassShatter";
+import type { Attachment } from "@/types/stickfigure";
 
 export default function Home() {
   const [showContent, setShowContent] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
+  const [attachments, setAttachments] = useState<Attachment[]>([])
   const figureRef = useRef<FallingStickFigureRef>(null)
   const glassRef = useRef<GlassShatterRef>(null)
+
+  // Load attachments from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('stickfigure-config')
+    if (saved) {
+      try {
+        const config = JSON.parse(saved)
+        if (config.attachments) {
+          setAttachments(config.attachments)
+        }
+      } catch (e) {
+        console.error('Failed to load stickfigure config:', e)
+      }
+    }
+  }, [])
 
   const handleArrowClick = () => {
     if (isAnimating) return
@@ -25,6 +42,7 @@ export default function Home() {
       {/* Global Falling Stick Figure */}
       <FallingStickFigure
         ref={figureRef}
+        attachments={attachments}
         onReachBottom={() => {
           setShowContent(true)
           // Trigger glass shatter right before figure enters screen
