@@ -542,10 +542,15 @@ const FallingStickFigure = forwardRef<FallingStickFigureRef, FallingStickFigureP
       wing1: { offsetX: -61, offsetY: -46, rotation: -10 },
       wing2: { offsetX: -8, offsetY: 79, rotation: 166 },
     })
+    // Flag to stop all animation updates when complete
+    const animationFrozenRef = useRef(false)
 
     // Update state when ref changes (for animation)
     useEffect(() => {
       const interval = setInterval(() => {
+        // Don't update if animation is frozen (completed)
+        if (animationFrozenRef.current) return
+
         setJoints({ ...jointsRef.current })
         // Update attachments with animated wing values
         if (attachments.length >= 2) {
@@ -570,6 +575,9 @@ const FallingStickFigure = forwardRef<FallingStickFigureRef, FallingStickFigureP
     useImperativeHandle(ref, () => ({
       startFall: () => {
         if (!figureRef.current || !containerRef.current) return
+
+        // Unfreeze animation updates for new fall
+        animationFrozenRef.current = false
 
         // Reset joints to start pose
         jointsRef.current = { ...startPose }
@@ -660,13 +668,13 @@ const FallingStickFigure = forwardRef<FallingStickFigureRef, FallingStickFigureP
         // Start pose animation after small delay
         gsap.delayedCall(0.3, () => poseTl.play())
 
-        // Single smooth fall through first screen
+        // Single smooth fall through first screen (slow start, fast end)
         tl.to(figureRef.current, {
           rotation: 0,
           y: '110vh',
           scale: 1.4,
           duration: 3.5,
-          ease: 'power2.in',
+          ease: 'power3.in',
           onComplete: () => {
             // PAUSE pose animation when going off-screen
             poseTl.pause()
@@ -693,15 +701,11 @@ const FallingStickFigure = forwardRef<FallingStickFigureRef, FallingStickFigureP
           onStart: () => {
             // RESUME pose animation when back on screen
             poseTl.play()
+            // Pause pose animation 1 second before reaching middle (1.5s into 2.5s duration)
+            gsap.delayedCall(1.5, () => poseTl.pause())
           },
           ease: 'power3.out', // Slows down as it reaches middle
           onComplete: () => {
-            // Seek pose animation to Frame 14 (index 13) and pause there
-            // Frame 14 index in smoothKeyframes = 13 * 15 = 195
-            // Progress = 195 / (totalBodyFrames - 1) = 195 / 225 ≈ 0.867
-            const frame14Progress = (13 * 15) / (totalBodyFrames - 1)
-            poseTl.progress(frame14Progress)
-            poseTl.pause()
             // Notify parent that figure is waiting at middle
             onReachMiddle?.()
           }
@@ -711,17 +715,17 @@ const FallingStickFigure = forwardRef<FallingStickFigureRef, FallingStickFigureP
         const secondPhaseTl = gsap.timeline({ paused: true })
         secondPhaseTlRef.current = secondPhaseTl
 
-        // Continue fall from middle to bottom
+        // Continue fall from middle to bottom (same speed as entry)
         secondPhaseTl.to(figureRef.current, {
           rotation: 0,
           y: '110vh',
           scale: 1.8,
-          duration: 2.0,
+          duration: 2.5,
           onStart: () => {
-            // Resume pose animation
+            // Resume pose animation to finish
             poseTl.play()
           },
-          ease: 'power2.in',
+          ease: 'power3.in', // Accelerates like gravity (mirror of entry's power3.out)
         })
 
         // Fade out at bottom
@@ -730,6 +734,10 @@ const FallingStickFigure = forwardRef<FallingStickFigureRef, FallingStickFigureP
           duration: 0.5,
           ease: 'power2.in',
           onComplete: () => {
+            // Stop pose animation when landing - freeze the figure
+            poseTl.pause()
+            // Freeze all animation updates
+            animationFrozenRef.current = true
             onFallComplete?.()
           }
         }, '-=0.3')

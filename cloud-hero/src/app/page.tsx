@@ -2,15 +2,19 @@
 
 import { useState, useRef, useEffect } from "react";
 import Hero from "@/components/Hero";
+import IntroScene, { IntroSceneRef } from "@/components/IntroScene";
 import FallingStickFigure, { FallingStickFigureRef } from "@/components/FallingStickFigure";
 import GlassShatter, { GlassShatterRef } from "@/components/GlassShatter";
 import type { Attachment } from "@/types/stickfigure";
 
 export default function Home() {
+  const [showIntro, setShowIntro] = useState(true)
+  const [showHero, setShowHero] = useState(false)
   const [showContent, setShowContent] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
   const [waitingAtMiddle, setWaitingAtMiddle] = useState(false)
   const [attachments, setAttachments] = useState<Attachment[]>([])
+  const introRef = useRef<IntroSceneRef>(null)
   const figureRef = useRef<FallingStickFigureRef>(null)
   const glassRef = useRef<GlassShatterRef>(null)
 
@@ -46,41 +50,58 @@ export default function Home() {
       {/* Glass shatter effect */}
       <GlassShatter ref={glassRef} particleCount={50} />
 
-      {/* Global Falling Stick Figure */}
-      <FallingStickFigure
-        ref={figureRef}
-        attachments={attachments}
-        onReachBottom={() => {
-          setShowContent(true)
-          // Trigger glass shatter right before figure enters screen
-          setTimeout(() => {
-            glassRef.current?.trigger()
-          }, 400)
-        }}
-        onReachMiddle={() => {
-          // Figure stopped at middle, waiting for click
-          setWaitingAtMiddle(true)
-        }}
-        onFallComplete={() => {
-          // Figure finished falling
-          setIsAnimating(false)
-        }}
-      />
+      {/* Global Falling Stick Figure - only active after intro */}
+      {showHero && (
+        <FallingStickFigure
+          ref={figureRef}
+          attachments={attachments}
+          onReachBottom={() => {
+            setShowContent(true)
+            // Trigger glass shatter right before figure enters screen
+            setTimeout(() => {
+              glassRef.current?.trigger()
+            }, 400)
+          }}
+          onReachMiddle={() => {
+            // Figure stopped at middle, waiting for click
+            setWaitingAtMiddle(true)
+          }}
+          onFallComplete={() => {
+            // Figure finished falling
+            setIsAnimating(false)
+          }}
+        />
+      )}
 
-      {/* Hero section - hide when content shows */}
-      <div style={{
-        display: showContent ? 'none' : 'block',
-      }}>
+      {/* Intro Scene - character on cloud with fishing rod */}
+      {showIntro && (
+        <IntroScene
+          ref={introRef}
+          attachments={attachments}
+          onFallStart={() => {
+            // Character started falling from cloud
+          }}
+          onFallComplete={() => {
+            // Character fell off, show hero
+            setShowIntro(false)
+            setShowHero(true)
+          }}
+        />
+      )}
+
+      {/* Hero section - show after intro, hide when content shows */}
+      {showHero && !showContent && (
         <Hero onArrowClick={handleArrowClick} isAnimating={isAnimating} />
-      </div>
+      )}
 
-      {/* Black screen - figure falls through */}
-      {showContent && (
+      {/* Black screen - figure falls through (our portfolio screen) */}
+      {showHero && showContent && (
         <section style={{
           width: '100%',
           height: '100vh',
           background: '#000000',
           position: 'relative',
+          overflow: 'hidden',
         }}>
           {/* Down arrow - appears when figure stops at middle */}
           {waitingAtMiddle && (
