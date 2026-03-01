@@ -6,10 +6,12 @@ import type { Attachment } from '@/types/stickfigure'
 
 export interface FallingStickFigureRef {
   startFall: () => void
+  resumeFall: () => void
 }
 
 interface FallingStickFigureProps {
   onReachBottom?: () => void
+  onReachMiddle?: () => void  // Called when figure stops at middle of second screen
   onFallComplete?: () => void
   attachments?: Attachment[]
 }
@@ -528,7 +530,7 @@ const bones: { from: keyof JointPositions; to: keyof JointPositions }[] = [
 ]
 
 const FallingStickFigure = forwardRef<FallingStickFigureRef, FallingStickFigureProps>(
-  ({ onReachBottom, onFallComplete, attachments = [] }, ref) => {
+  ({ onReachBottom, onReachMiddle, onFallComplete, attachments = [] }, ref) => {
     const figureRef = useRef<SVGSVGElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const [joints, setJoints] = useState<JointPositions>(startPose)
@@ -561,6 +563,10 @@ const FallingStickFigure = forwardRef<FallingStickFigureRef, FallingStickFigureP
       return () => clearInterval(interval)
     }, [attachments])
 
+    // Ref to store the second phase timeline for resuming
+    const secondPhaseTlRef = useRef<gsap.core.Timeline | null>(null)
+    const poseTlRef = useRef<gsap.core.Timeline | null>(null)
+
     useImperativeHandle(ref, () => ({
       startFall: () => {
         if (!figureRef.current || !containerRef.current) return
@@ -582,11 +588,11 @@ const FallingStickFigure = forwardRef<FallingStickFigureRef, FallingStickFigureP
 
         // Create a separate paused timeline for pose animations (so we can pause/resume)
         const poseTl = gsap.timeline({ paused: true })
+        poseTlRef.current = poseTl
 
         // Animate joints through all smooth keyframes
         const jointKeys = Object.keys(startPose) as (keyof JointPositions)[]
         // Total pose animation duration (split across both screens)
-        // First screen: 3.5s - 0.3s delay = 3.2s, Second screen: 4.5s, Total: 7.7s
         const totalAnimationDuration = 6.5 // Total time for all poses
 
         // Use continuous interpolation for truly smooth motion
@@ -677,21 +683,49 @@ const FallingStickFigure = forwardRef<FallingStickFigureRef, FallingStickFigureP
           }
         })
 
-        // Fall through second screen - no rotation, just falling
+        // Phase 1: Fall to middle of second screen with ease-out (slowing down)
+        // y: 0 is the true center since container uses flexbox centering
         tl.to(figureRef.current, {
           rotation: 0,
-          y: '110vh',
-          scale: 1.8,
-          duration: 4.5,
+          y: 0,
+          scale: 1.4,
+          duration: 2.5,
           onStart: () => {
             // RESUME pose animation when back on screen
             poseTl.play()
           },
-          ease: 'power1.in',
+          ease: 'power3.out', // Slows down as it reaches middle
+          onComplete: () => {
+            // Seek pose animation to Frame 14 (index 13) and pause there
+            // Frame 14 index in smoothKeyframes = 13 * 15 = 195
+            // Progress = 195 / (totalBodyFrames - 1) = 195 / 225 ≈ 0.867
+            const frame14Progress = (13 * 15) / (totalBodyFrames - 1)
+            poseTl.progress(frame14Progress)
+            poseTl.pause()
+            // Notify parent that figure is waiting at middle
+            onReachMiddle?.()
+          }
+        })
+
+        // Phase 2: Create but don't play yet - waits for resumeFall()
+        const secondPhaseTl = gsap.timeline({ paused: true })
+        secondPhaseTlRef.current = secondPhaseTl
+
+        // Continue fall from middle to bottom
+        secondPhaseTl.to(figureRef.current, {
+          rotation: 0,
+          y: '110vh',
+          scale: 1.8,
+          duration: 2.0,
+          onStart: () => {
+            // Resume pose animation
+            poseTl.play()
+          },
+          ease: 'power2.in',
         })
 
         // Fade out at bottom
-        tl.to(figureRef.current, {
+        secondPhaseTl.to(figureRef.current, {
           opacity: 0,
           duration: 0.5,
           ease: 'power2.in',
@@ -699,6 +733,13 @@ const FallingStickFigure = forwardRef<FallingStickFigureRef, FallingStickFigureP
             onFallComplete?.()
           }
         }, '-=0.3')
+      },
+
+      resumeFall: () => {
+        // Resume the second phase of the fall
+        if (secondPhaseTlRef.current) {
+          secondPhaseTlRef.current.play()
+        }
       }
     }))
 

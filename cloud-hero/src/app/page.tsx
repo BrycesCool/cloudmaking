@@ -9,6 +9,7 @@ import type { Attachment } from "@/types/stickfigure";
 export default function Home() {
   const [showContent, setShowContent] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
+  const [waitingAtMiddle, setWaitingAtMiddle] = useState(false)
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const figureRef = useRef<FallingStickFigureRef>(null)
   const glassRef = useRef<GlassShatterRef>(null)
@@ -34,6 +35,12 @@ export default function Home() {
     figureRef.current?.startFall()
   }
 
+  const handleContinueFall = () => {
+    if (!waitingAtMiddle) return
+    setWaitingAtMiddle(false)
+    figureRef.current?.resumeFall()
+  }
+
   return (
     <main>
       {/* Glass shatter effect */}
@@ -50,8 +57,13 @@ export default function Home() {
             glassRef.current?.trigger()
           }, 400)
         }}
+        onReachMiddle={() => {
+          // Figure stopped at middle, waiting for click
+          setWaitingAtMiddle(true)
+        }}
         onFallComplete={() => {
           // Figure finished falling
+          setIsAnimating(false)
         }}
       />
 
@@ -68,7 +80,48 @@ export default function Home() {
           width: '100%',
           height: '100vh',
           background: '#000000',
-        }} />
+          position: 'relative',
+        }}>
+          {/* Down arrow - appears when figure stops at middle */}
+          {waitingAtMiddle && (
+            <button
+              onClick={handleContinueFall}
+              style={{
+                position: 'absolute',
+                bottom: '10%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '20px',
+                zIndex: 10000,
+              }}
+            >
+              <svg
+                width="60"
+                height="60"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{
+                  animation: 'bounce 1s infinite',
+                }}
+              >
+                <path d="M12 5v14M5 12l7 7 7-7" />
+              </svg>
+              <style>{`
+                @keyframes bounce {
+                  0%, 100% { transform: translateY(0); }
+                  50% { transform: translateY(10px); }
+                }
+              `}</style>
+            </button>
+          )}
+        </section>
       )}
     </main>
   );
