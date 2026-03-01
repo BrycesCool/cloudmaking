@@ -366,59 +366,98 @@ const wingKeyframes: WingKeyframe[] = [
 ]
 
 // Starting pose - standing upright (before fall begins)
+// Scaled up for a taller, bigger figure with proper proportions
 const startPose: JointPositions = {
-  head: { x: 0, y: -80 },
-  neck: { x: 0, y: -50 },
-  shoulder_l: { x: -20, y: -45 },
-  shoulder_r: { x: 20, y: -45 },
-  elbow_l: { x: -35, y: -20 },
-  elbow_r: { x: 35, y: -20 },
-  hand_l: { x: -45, y: 5 },
-  hand_r: { x: 45, y: 5 },
+  head: { x: 0, y: -115 },
+  neck: { x: 0, y: -80 },
+  shoulder_l: { x: -30, y: -75 },
+  shoulder_r: { x: 30, y: -75 },
+  elbow_l: { x: -55, y: -30 },
+  elbow_r: { x: 55, y: -30 },
+  hand_l: { x: -75, y: 15 },
+  hand_r: { x: 75, y: 15 },
   hip: { x: 0, y: 0 },
-  hip_l: { x: -15, y: 10 },
-  hip_r: { x: 15, y: 10 },
-  knee_l: { x: -20, y: 50 },
-  knee_r: { x: 20, y: 50 },
-  foot_l: { x: -25, y: 90 },
-  foot_r: { x: 25, y: 90 },
+  hip_l: { x: -22, y: 15 },
+  hip_r: { x: 22, y: 15 },
+  knee_l: { x: -28, y: 85 },
+  knee_r: { x: 28, y: 85 },
+  foot_l: { x: -35, y: 155 },
+  foot_r: { x: 35, y: 155 },
 }
 
-// Natural falling easing - different body parts move at different rates
-// Core (hip, neck) moves more directly, extremities (hands, feet) lag/float more
-function naturalFallEase(t: number, isExtremity: boolean): number {
-  if (isExtremity) {
-    // Extremities: slower start, overshoot slightly, settle (like air resistance)
-    // Cubic bezier approximation for floaty motion
-    const overshoot = 1.1
-    const ease = t < 0.5
-      ? 4 * t * t * t
-      : 1 - Math.pow(-2 * t + 2, 3) / 2
-    return ease * (1 + (overshoot - 1) * Math.sin(t * Math.PI))
-  } else {
-    // Core body: smooth ease-in-out, more direct movement
-    return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
+// Calculate distance between two points
+function distance(p1: { x: number; y: number }, p2: { x: number; y: number }): number {
+  return Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2)
+}
+
+// Bone hierarchy for constraint solving (parent → child relationships)
+// Only constrain LIMBS - let head/neck/torso follow animation freely
+// This prevents the head from "bouncing" due to constraint fighting
+const boneHierarchy: { parent: keyof JointPositions; child: keyof JointPositions }[] = [
+  // Arms
+  { parent: 'shoulder_l', child: 'elbow_l' },
+  { parent: 'shoulder_r', child: 'elbow_r' },
+  { parent: 'elbow_l', child: 'hand_l' },
+  { parent: 'elbow_r', child: 'hand_r' },
+  // Legs
+  { parent: 'hip_l', child: 'knee_l' },
+  { parent: 'hip_r', child: 'knee_r' },
+  { parent: 'knee_l', child: 'foot_l' },
+  { parent: 'knee_r', child: 'foot_r' },
+]
+
+// Calculate canonical bone lengths from startPose
+const canonicalBoneLengths: Map<string, number> = new Map()
+boneHierarchy.forEach(({ parent, child }) => {
+  const len = distance(startPose[parent], startPose[child])
+  canonicalBoneLengths.set(`${parent}-${child}`, len)
+})
+
+// Enforce bone length constraints on a pose
+// Moves child joints to maintain proper bone lengths while preserving direction
+function enforceBoneLengths(pose: JointPositions): JointPositions {
+  const result = { ...pose }
+  // Deep copy all joints
+  for (const key of Object.keys(pose) as (keyof JointPositions)[]) {
+    result[key] = { ...pose[key] }
   }
+
+  // Solve constraints from root outward
+  for (const { parent, child } of boneHierarchy) {
+    const parentPos = result[parent]
+    const childPos = result[child]
+    const targetLength = canonicalBoneLengths.get(`${parent}-${child}`) || 0
+
+    const currentLength = distance(parentPos, childPos)
+    if (currentLength > 0.001 && Math.abs(currentLength - targetLength) > 0.001) {
+      // Calculate direction from parent to child
+      const dx = childPos.x - parentPos.x
+      const dy = childPos.y - parentPos.y
+      // Scale to target length
+      const scale = targetLength / currentLength
+      result[child] = {
+        x: parentPos.x + dx * scale,
+        y: parentPos.y + dy * scale,
+      }
+    }
+  }
+
+  return result
 }
 
-// Check if a joint is an extremity (hands, feet) vs core (hip, neck, shoulders)
-function isExtremityJoint(key: keyof JointPositions): boolean {
-  return ['hand_l', 'hand_r', 'foot_l', 'foot_r', 'elbow_l', 'elbow_r', 'knee_l', 'knee_r'].includes(key)
-}
-
-// Helper function to interpolate between two poses with natural falling physics
+// Helper function to interpolate between two poses
+// Uses uniform linear interpolation then enforces bone length constraints
 function interpolatePoses(poseA: JointPositions, poseB: JointPositions, t: number): JointPositions {
   const result: Partial<JointPositions> = {}
   const keys = Object.keys(poseA) as (keyof JointPositions)[]
   for (const key of keys) {
-    const isExtremity = isExtremityJoint(key)
-    const eased = naturalFallEase(t, isExtremity)
     result[key] = {
-      x: poseA[key].x + (poseB[key].x - poseA[key].x) * eased,
-      y: poseA[key].y + (poseB[key].y - poseA[key].y) * eased,
+      x: poseA[key].x + (poseB[key].x - poseA[key].x) * t,
+      y: poseA[key].y + (poseB[key].y - poseA[key].y) * t,
     }
   }
-  return result as JointPositions
+  // Enforce bone lengths after interpolation to prevent stretching
+  return enforceBoneLengths(result as JointPositions)
 }
 
 // Generate in-between frames for smoother animation
@@ -435,28 +474,21 @@ function generateInBetweens(keyframes: JointPositions[], framesPerKeyframe: numb
   return result
 }
 
-// Generate smooth animation frames (3 in-betweens per keyframe = ~56 total frames)
-const smoothKeyframes = generateInBetweens(fallingKeyframes, 3)
+// Generate smooth animation frames (15 in-betweens per keyframe = ~256 total frames)
+const smoothKeyframes = generateInBetweens(fallingKeyframes, 15)
 
-// Interpolate wing keyframes with natural floaty motion (wings catch air)
+// Interpolate wing keyframes with linear motion for smooth consistent movement
 function interpolateWings(frameA: WingKeyframe, frameB: WingKeyframe, t: number): WingKeyframe {
-  // Wings have more float/lag since they catch air during fall
-  const overshoot = 1.05
-  const eased = t < 0.5
-    ? 4 * t * t * t
-    : 1 - Math.pow(-2 * t + 2, 3) / 2
-  const finalEase = Math.min(1, eased * (1 + (overshoot - 1) * Math.sin(t * Math.PI * 0.8)))
-
   return {
     wing1: {
-      offsetX: frameA.wing1.offsetX + (frameB.wing1.offsetX - frameA.wing1.offsetX) * finalEase,
-      offsetY: frameA.wing1.offsetY + (frameB.wing1.offsetY - frameA.wing1.offsetY) * finalEase,
-      rotation: frameA.wing1.rotation + (frameB.wing1.rotation - frameA.wing1.rotation) * finalEase,
+      offsetX: frameA.wing1.offsetX + (frameB.wing1.offsetX - frameA.wing1.offsetX) * t,
+      offsetY: frameA.wing1.offsetY + (frameB.wing1.offsetY - frameA.wing1.offsetY) * t,
+      rotation: frameA.wing1.rotation + (frameB.wing1.rotation - frameA.wing1.rotation) * t,
     },
     wing2: {
-      offsetX: frameA.wing2.offsetX + (frameB.wing2.offsetX - frameA.wing2.offsetX) * finalEase,
-      offsetY: frameA.wing2.offsetY + (frameB.wing2.offsetY - frameA.wing2.offsetY) * finalEase,
-      rotation: frameA.wing2.rotation + (frameB.wing2.rotation - frameA.wing2.rotation) * finalEase,
+      offsetX: frameA.wing2.offsetX + (frameB.wing2.offsetX - frameA.wing2.offsetX) * t,
+      offsetY: frameA.wing2.offsetY + (frameB.wing2.offsetY - frameA.wing2.offsetY) * t,
+      rotation: frameA.wing2.rotation + (frameB.wing2.rotation - frameA.wing2.rotation) * t,
     },
   }
 }
@@ -475,7 +507,7 @@ function generateWingInBetweens(keyframes: WingKeyframe[], framesPerKeyframe: nu
   return result
 }
 
-const smoothWingKeyframes = generateWingInBetweens(wingKeyframes, 3)
+const smoothWingKeyframes = generateWingInBetweens(wingKeyframes, 15)
 
 // Bones connecting joints
 const bones: { from: keyof JointPositions; to: keyof JointPositions }[] = [
@@ -554,58 +586,69 @@ const FallingStickFigure = forwardRef<FallingStickFigureRef, FallingStickFigureP
         // Animate joints through all smooth keyframes
         const jointKeys = Object.keys(startPose) as (keyof JointPositions)[]
         // Total pose animation duration (split across both screens)
-        const totalAnimationDuration = 6.0 // Total time for all poses
-        const frameDuration = totalAnimationDuration / (smoothKeyframes.length - 1)
+        // First screen: 3.5s - 0.3s delay = 3.2s, Second screen: 4.5s, Total: 7.7s
+        const totalAnimationDuration = 6.5 // Total time for all poses
 
-        // Animate each joint through all keyframes on the pose timeline
-        jointKeys.forEach(key => {
-          const keyframeValues = smoothKeyframes.map(frame => ({
-            x: frame[key].x,
-            y: frame[key].y,
-          }))
+        // Use continuous interpolation for truly smooth motion
+        // This calculates exact positions at every GSAP tick (~60fps)
+        const totalBodyFrames = smoothKeyframes.length
+        const totalWingFrames = smoothWingKeyframes.length
+        const progressObj = { value: 0 }
 
-          // Create keyframe animation for x
-          poseTl.to(jointsRef.current[key], {
-            keyframes: keyframeValues.map((val, i) => ({
-              x: val.x,
-              duration: frameDuration,
-              ease: i === 0 ? 'none' : 'power1.inOut',
-            })),
-          }, 0) // All joints start at time 0
+        poseTl.to(progressObj, {
+          value: 1,
+          duration: totalAnimationDuration,
+          ease: 'none',
+          onUpdate: () => {
+            const progress = progressObj.value
 
-          // Create keyframe animation for y
-          poseTl.to(jointsRef.current[key], {
-            keyframes: keyframeValues.map((val, i) => ({
-              y: val.y,
-              duration: frameDuration,
-              ease: i === 0 ? 'none' : 'power1.inOut',
-            })),
-          }, 0)
-        })
+            // Calculate body pose with sub-frame interpolation
+            const bodyFrameFloat = progress * (totalBodyFrames - 1)
+            const bodyFrameIndex = Math.min(Math.floor(bodyFrameFloat), totalBodyFrames - 2)
+            const bodyFrameProgress = bodyFrameFloat - bodyFrameIndex
+            const currentBodyFrame = smoothKeyframes[bodyFrameIndex]
+            const nextBodyFrame = smoothKeyframes[bodyFrameIndex + 1]
 
-        // Animate wing attachments on pose timeline
-        const wingFrameDuration = totalAnimationDuration / (smoothWingKeyframes.length - 1)
+            // Interpolate all joints smoothly between frames
+            const interpolatedPose: Partial<JointPositions> = {}
+            jointKeys.forEach(key => {
+              interpolatedPose[key] = {
+                x: currentBodyFrame[key].x +
+                  (nextBodyFrame[key].x - currentBodyFrame[key].x) * bodyFrameProgress,
+                y: currentBodyFrame[key].y +
+                  (nextBodyFrame[key].y - currentBodyFrame[key].y) * bodyFrameProgress,
+              }
+            })
 
-        // Wing 1 animation
-        poseTl.to(wingAnimRef.current.wing1, {
-          keyframes: smoothWingKeyframes.map((frame, i) => ({
-            offsetX: frame.wing1.offsetX,
-            offsetY: frame.wing1.offsetY,
-            rotation: frame.wing1.rotation,
-            duration: wingFrameDuration,
-            ease: i === 0 ? 'none' : 'power1.inOut',
-          })),
-        }, 0)
+            // Enforce bone lengths to prevent stretching during sub-frame interpolation
+            const constrainedPose = enforceBoneLengths(interpolatedPose as JointPositions)
+            jointKeys.forEach(key => {
+              jointsRef.current[key].x = constrainedPose[key].x
+              jointsRef.current[key].y = constrainedPose[key].y
+            })
 
-        // Wing 2 animation
-        poseTl.to(wingAnimRef.current.wing2, {
-          keyframes: smoothWingKeyframes.map((frame, i) => ({
-            offsetX: frame.wing2.offsetX,
-            offsetY: frame.wing2.offsetY,
-            rotation: frame.wing2.rotation,
-            duration: wingFrameDuration,
-            ease: i === 0 ? 'none' : 'power1.inOut',
-          })),
+            // Calculate wing pose with sub-frame interpolation
+            const wingFrameFloat = progress * (totalWingFrames - 1)
+            const wingFrameIndex = Math.min(Math.floor(wingFrameFloat), totalWingFrames - 2)
+            const wingFrameProgress = wingFrameFloat - wingFrameIndex
+            const currentWingFrame = smoothWingKeyframes[wingFrameIndex]
+            const nextWingFrame = smoothWingKeyframes[wingFrameIndex + 1]
+
+            // Interpolate wings smoothly
+            wingAnimRef.current.wing1.offsetX = currentWingFrame.wing1.offsetX +
+              (nextWingFrame.wing1.offsetX - currentWingFrame.wing1.offsetX) * wingFrameProgress
+            wingAnimRef.current.wing1.offsetY = currentWingFrame.wing1.offsetY +
+              (nextWingFrame.wing1.offsetY - currentWingFrame.wing1.offsetY) * wingFrameProgress
+            wingAnimRef.current.wing1.rotation = currentWingFrame.wing1.rotation +
+              (nextWingFrame.wing1.rotation - currentWingFrame.wing1.rotation) * wingFrameProgress
+
+            wingAnimRef.current.wing2.offsetX = currentWingFrame.wing2.offsetX +
+              (nextWingFrame.wing2.offsetX - currentWingFrame.wing2.offsetX) * wingFrameProgress
+            wingAnimRef.current.wing2.offsetY = currentWingFrame.wing2.offsetY +
+              (nextWingFrame.wing2.offsetY - currentWingFrame.wing2.offsetY) * wingFrameProgress
+            wingAnimRef.current.wing2.rotation = currentWingFrame.wing2.rotation +
+              (nextWingFrame.wing2.rotation - currentWingFrame.wing2.rotation) * wingFrameProgress
+          }
         }, 0)
 
         // Start pose animation after small delay
@@ -672,14 +715,14 @@ const FallingStickFigure = forwardRef<FallingStickFigureRef, FallingStickFigureP
           alignItems: 'center',
           justifyContent: 'center',
           pointerEvents: 'none',
-          zIndex: 150,
+          zIndex: 9999,
         }}
       >
         <svg
           ref={figureRef}
-          width="120"
-          height="150"
-          viewBox="-180 -210 320 380"
+          width="200"
+          height="250"
+          viewBox="-300 -350 600 700"
           style={{
             transformOrigin: 'center center',
           }}
@@ -717,10 +760,10 @@ const FallingStickFigure = forwardRef<FallingStickFigureRef, FallingStickFigureP
           <circle
             cx={joints.head.x}
             cy={joints.head.y}
-            r={25}
+            r={40}
             fill="none"
             stroke="white"
-            strokeWidth="4" // Adjust line thickness here
+            strokeWidth="10"
           />
 
           {/* Bones/Lines */}
@@ -732,7 +775,7 @@ const FallingStickFigure = forwardRef<FallingStickFigureRef, FallingStickFigureP
               x2={joints[bone.to].x}
               y2={joints[bone.to].y}
               stroke="white"
-              strokeWidth="4" // Adjust line thickness here
+              strokeWidth="10"
               strokeLinecap="round"
             />
           ))}
