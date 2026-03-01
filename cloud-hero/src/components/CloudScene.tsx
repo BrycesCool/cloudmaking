@@ -2,7 +2,7 @@
 
 import { useRef, useMemo } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { Clouds, Cloud, Sky } from '@react-three/drei'
+import { Clouds, Cloud, Stars, Text } from '@react-three/drei'
 import * as THREE from 'three'
 
 // Default cloud layer settings from the original playground
@@ -12,17 +12,6 @@ const cloudLayers = [
   { visible: true, seed: 29, segments: 40, bounds: [10, 3.5, 2], volume: 10, color: "#ffffff", opacity: 0.8, speed: 0.4, growth: 4, fade: 10, concentrate: "inside" as const, position: [-13, -5, -7] as [number, number, number] },
   { visible: true, seed: 92, segments: 40, bounds: [19, 2, 2], volume: 10, color: "#ffffff", opacity: 0.8, speed: 0.4, growth: 4, fade: 10, concentrate: "inside" as const, position: [-1, -8, -3] as [number, number, number] },
 ]
-
-// Default sky settings (Sunny Day preset)
-const skySettings = {
-  sunPosition: [100, 90, 100] as [number, number, number],
-  sunColor: "#ffffff",
-  turbidity: 8,
-  rayleigh: 2,
-  mieCoefficient: 0.034,
-  mieDirectionalG: 0.83,
-  exposure: 0.5,
-}
 
 // Placeholder card component
 function ProjectCard({ position }: { position: [number, number, number] }) {
@@ -67,34 +56,48 @@ function Scene() {
 
   return (
     <>
-      {/* Realistic sky with sun */}
-      <Sky
-        distance={450000}
-        sunPosition={skySettings.sunPosition}
-        inclination={0.5}
-        azimuth={0.25}
-        turbidity={skySettings.turbidity}
-        rayleigh={skySettings.rayleigh}
-        mieCoefficient={skySettings.mieCoefficient}
-        mieDirectionalG={skySettings.mieDirectionalG}
+      {/* Pure black background */}
+      <color attach="background" args={['#000000']} />
+
+      {/* Starry sky */}
+      <Stars
+        radius={100}
+        depth={50}
+        count={5000}
+        factor={4}
+        saturation={0}
+        fade
+        speed={1}
       />
 
-      {/* Sun light - directional light from sun position */}
+      {/* Directional light for clouds - kept bright for white clouds */}
       <directionalLight
-        position={skySettings.sunPosition}
-        intensity={skySettings.exposure * 5}
-        color={skySettings.sunColor}
-        castShadow
+        position={[100, 50, 100]}
+        intensity={2.5}
+        color="#ffffff"
       />
 
-      {/* Ambient light for fill */}
-      <ambientLight intensity={0.3} color="#aaccff" />
+      {/* Ambient light - bright to keep clouds white */}
+      <ambientLight intensity={1.5} color="#ffffff" />
 
-      {/* Hemisphere light for sky/ground color variation */}
-      <hemisphereLight
-        args={["#87ceeb", "#362907", 0.4]}
+      {/* Secondary fill light */}
+      <directionalLight
+        position={[-50, 30, -50]}
+        intensity={1}
+        color="#ffffff"
       />
 
+
+      {/* Portfolio title above cards */}
+      <Text
+        position={[0, 3.5, cardZ]}
+        fontSize={1.2}
+        color="#ffffff"
+        anchorX="center"
+        anchorY="middle"
+      >
+        Our Portfolio
+      </Text>
 
       {/* Project cards behind clouds */}
       {cardPositions.map((pos, i) => (
