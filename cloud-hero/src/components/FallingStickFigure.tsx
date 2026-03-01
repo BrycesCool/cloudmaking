@@ -32,7 +32,340 @@ interface JointPositions {
   foot_r: { x: number; y: number }
 }
 
-// Starting pose - standing upright
+// All 16 keyframe poses for the falling animation (hand-crafted frames)
+const fallingKeyframes: JointPositions[] = [
+  // Frame 1 - Initial tumble
+  {
+    head: { x: 97, y: -63 },
+    neck: { x: 78, y: -20 },
+    shoulder_l: { x: 77, y: -19 },
+    shoulder_r: { x: 77, y: -20 },
+    elbow_l: { x: 69, y: 45 },
+    elbow_r: { x: 13, y: -33 },
+    hand_l: { x: 3, y: 81 },
+    hand_r: { x: -42, y: -95 },
+    hip: { x: 46, y: 24 },
+    hip_l: { x: -13, y: 59 },
+    hip_r: { x: -12, y: 60 },
+    knee_l: { x: -40, y: -34 },
+    knee_r: { x: -79, y: -4 },
+    foot_l: { x: -138, y: -56 },
+    foot_r: { x: -136, y: 80 },
+  },
+  // Frame 2
+  {
+    head: { x: 110, y: -56 },
+    neck: { x: 76, y: -22 },
+    shoulder_l: { x: 75, y: -21 },
+    shoulder_r: { x: 75, y: -22 },
+    elbow_l: { x: 72, y: 50 },
+    elbow_r: { x: 4, y: -28 },
+    hand_l: { x: 7, y: 88 },
+    hand_r: { x: -42, y: -103 },
+    hip: { x: 44, y: 22 },
+    hip_l: { x: -15, y: 57 },
+    hip_r: { x: -14, y: 58 },
+    knee_l: { x: -41, y: -28 },
+    knee_r: { x: -78, y: 3 },
+    foot_l: { x: -136, y: -63 },
+    foot_r: { x: -141, y: 67 },
+  },
+  // Frame 3
+  {
+    head: { x: 118, y: -52 },
+    neck: { x: 74, y: -23 },
+    shoulder_l: { x: 81, y: -18 },
+    shoulder_r: { x: 80, y: -19 },
+    elbow_l: { x: 61, y: 48 },
+    elbow_r: { x: 10, y: -38 },
+    hand_l: { x: 8, y: 80 },
+    hand_r: { x: -36, y: -108 },
+    hip: { x: 45, y: 26 },
+    hip_l: { x: -17, y: 56 },
+    hip_r: { x: -16, y: 57 },
+    knee_l: { x: -46, y: -26 },
+    knee_r: { x: -80, y: 7 },
+    foot_l: { x: -144, y: -56 },
+    foot_r: { x: -145, y: 61 },
+  },
+  // Frame 4
+  {
+    head: { x: 116, y: -62 },
+    neck: { x: 77, y: -22 },
+    shoulder_l: { x: 84, y: -17 },
+    shoulder_r: { x: 83, y: -18 },
+    elbow_l: { x: 59, y: 48 },
+    elbow_r: { x: 6, y: -33 },
+    hand_l: { x: 7, y: 75 },
+    hand_r: { x: -36, y: -99 },
+    hip: { x: 39, y: 20 },
+    hip_l: { x: -14, y: 57 },
+    hip_r: { x: -13, y: 58 },
+    knee_l: { x: -47, y: -20 },
+    knee_r: { x: -73, y: 17 },
+    foot_l: { x: -141, y: -51 },
+    foot_r: { x: -143, y: 51 },
+  },
+  // Frame 5
+  {
+    head: { x: 129, y: -57 },
+    neck: { x: 82, y: -16 },
+    shoulder_l: { x: 80, y: -21 },
+    shoulder_r: { x: 86, y: -17 },
+    elbow_l: { x: 61, y: 48 },
+    elbow_r: { x: 11, y: -35 },
+    hand_l: { x: 10, y: 77 },
+    hand_r: { x: -47, y: -95 },
+    hip: { x: 35, y: 16 },
+    hip_l: { x: -18, y: 53 },
+    hip_r: { x: -17, y: 54 },
+    knee_l: { x: -55, y: -20 },
+    knee_r: { x: -77, y: 21 },
+    foot_l: { x: -139, y: -47 },
+    foot_r: { x: -145, y: 32 },
+  },
+  // Frame 6
+  {
+    head: { x: 135, y: -41 },
+    neck: { x: 88, y: -9 },
+    shoulder_l: { x: 87, y: -9 },
+    shoulder_r: { x: 84, y: -8 },
+    elbow_l: { x: 54, y: 43 },
+    elbow_r: { x: 12, y: -46 },
+    hand_l: { x: 8, y: 72 },
+    hand_r: { x: -49, y: -92 },
+    hip: { x: 44, y: 19 },
+    hip_l: { x: -14, y: 41 },
+    hip_r: { x: -14, y: 42 },
+    knee_l: { x: -60, y: -21 },
+    knee_r: { x: -76, y: 18 },
+    foot_l: { x: -148, y: -38 },
+    foot_r: { x: -144, y: 29 },
+  },
+  // Frame 7 - NEW smooth transition
+  {
+    head: { x: 129, y: -30 },
+    neck: { x: 80, y: 1 },
+    shoulder_l: { x: 80, y: 1 },
+    shoulder_r: { x: 80, y: 1 },
+    elbow_l: { x: 50, y: 42 },
+    elbow_r: { x: 29, y: -51 },
+    hand_l: { x: 3, y: 65 },
+    hand_r: { x: -30, y: -66 },
+    hip: { x: 40, y: 18 },
+    hip_l: { x: -14, y: 17 },
+    hip_r: { x: -15, y: 17 },
+    knee_l: { x: -67, y: -16 },
+    knee_r: { x: -84, y: 10 },
+    foot_l: { x: -143, y: -27 },
+    foot_r: { x: -139, y: 21 },
+  },
+  // Frame 8 - NEW smooth transition
+  {
+    head: { x: 132, y: -21 },
+    neck: { x: 82, y: 9 },
+    shoulder_l: { x: 85, y: 9 },
+    shoulder_r: { x: 82, y: 10 },
+    elbow_l: { x: 37, y: 35 },
+    elbow_r: { x: 36, y: -39 },
+    hand_l: { x: 1, y: 52 },
+    hand_r: { x: -27, y: -52 },
+    hip: { x: 37, y: 11 },
+    hip_l: { x: -17, y: 10 },
+    hip_r: { x: -18, y: 10 },
+    knee_l: { x: -70, y: -23 },
+    knee_r: { x: -87, y: 3 },
+    foot_l: { x: -133, y: -12 },
+    foot_r: { x: -146, y: 1 },
+  },
+  // Frame 9 - Transition to horizontal
+  {
+    head: { x: 138, y: -8 },
+    neck: { x: 81, y: 6 },
+    shoulder_l: { x: 82, y: 12 },
+    shoulder_r: { x: 81, y: 7 },
+    elbow_l: { x: 36, y: 32 },
+    elbow_r: { x: 37, y: -48 },
+    hand_l: { x: 0, y: 49 },
+    hand_r: { x: -24, y: -69 },
+    hip: { x: 36, y: 8 },
+    hip_l: { x: -18, y: 7 },
+    hip_r: { x: -19, y: 7 },
+    knee_l: { x: -74, y: -16 },
+    knee_r: { x: -88, y: 0 },
+    foot_l: { x: -124, y: 12 },
+    foot_r: { x: -148, y: -3 },
+  },
+  // Frame 10
+  {
+    head: { x: 133, y: 11 },
+    neck: { x: 77, y: 16 },
+    shoulder_l: { x: 76, y: 16 },
+    shoulder_r: { x: 73, y: 13 },
+    elbow_l: { x: 40, y: 44 },
+    elbow_r: { x: 42, y: -40 },
+    hand_l: { x: -4, y: 63 },
+    hand_r: { x: -7, y: -73 },
+    hip: { x: 37, y: 16 },
+    hip_l: { x: -16, y: 8 },
+    hip_r: { x: -16, y: 8 },
+    knee_l: { x: -75, y: -8 },
+    knee_r: { x: -81, y: -40 },
+    foot_l: { x: -127, y: -4 },
+    foot_r: { x: -146, y: -36 },
+  },
+  // Frame 11
+  {
+    head: { x: 133, y: 45 },
+    neck: { x: 74, y: 28 },
+    shoulder_l: { x: 71, y: 30 },
+    shoulder_r: { x: 69, y: 28 },
+    elbow_l: { x: 41, y: 59 },
+    elbow_r: { x: 42, y: -37 },
+    hand_l: { x: -17, y: 61 },
+    hand_r: { x: -1, y: -86 },
+    hip: { x: 35, y: 18 },
+    hip_l: { x: -14, y: -4 },
+    hip_r: { x: -16, y: -5 },
+    knee_l: { x: -81, y: -17 },
+    knee_r: { x: -67, y: -54 },
+    foot_l: { x: -133, y: -7 },
+    foot_r: { x: -142, y: -58 },
+  },
+  // Frame 12
+  {
+    head: { x: 125, y: 69 },
+    neck: { x: 72, y: 38 },
+    shoulder_l: { x: 70, y: 37 },
+    shoulder_r: { x: 69, y: 39 },
+    elbow_l: { x: 34, y: 51 },
+    elbow_r: { x: 49, y: -35 },
+    hand_l: { x: -27, y: 46 },
+    hand_r: { x: 20, y: -81 },
+    hip: { x: 34, y: 8 },
+    hip_l: { x: -15, y: -13 },
+    hip_r: { x: -13, y: -14 },
+    knee_l: { x: -77, y: -14 },
+    knee_r: { x: -65, y: -63 },
+    foot_l: { x: -134, y: 4 },
+    foot_r: { x: -142, y: -75 },
+  },
+  // Frame 13
+  {
+    head: { x: 107, y: 80 },
+    neck: { x: 70, y: 39 },
+    shoulder_l: { x: 68, y: 38 },
+    shoulder_r: { x: 67, y: 40 },
+    elbow_l: { x: 32, y: 60 },
+    elbow_r: { x: 57, y: -31 },
+    hand_l: { x: -28, y: 41 },
+    hand_r: { x: 30, y: -83 },
+    hip: { x: 27, y: 18 },
+    hip_l: { x: -17, y: -12 },
+    hip_r: { x: -15, y: -5 },
+    knee_l: { x: -79, y: -13 },
+    knee_r: { x: -53, y: -70 },
+    foot_l: { x: -133, y: -11 },
+    foot_r: { x: -137, y: -91 },
+  },
+  // Frame 14
+  {
+    head: { x: 92, y: 86 },
+    neck: { x: 54, y: 41 },
+    shoulder_l: { x: 56, y: 45 },
+    shoulder_r: { x: 61, y: 43 },
+    elbow_l: { x: 33, y: 54 },
+    elbow_r: { x: 68, y: -15 },
+    hand_l: { x: -27, y: 35 },
+    hand_r: { x: 36, y: -75 },
+    hip: { x: 28, y: 20 },
+    hip_l: { x: -24, y: -3 },
+    hip_r: { x: -24, y: -5 },
+    knee_l: { x: -83, y: -31 },
+    knee_r: { x: -48, y: -61 },
+    foot_l: { x: -129, y: -43 },
+    foot_r: { x: -95, y: -95 },
+  },
+  // Frame 15
+  {
+    head: { x: 88, y: 94 },
+    neck: { x: 44, y: 51 },
+    shoulder_l: { x: 46, y: 46 },
+    shoulder_r: { x: 48, y: 45 },
+    elbow_l: { x: -1, y: 82 },
+    elbow_r: { x: 67, y: 3 },
+    hand_l: { x: -42, y: 47 },
+    hand_r: { x: 45, y: -58 },
+    hip: { x: 18, y: 25 },
+    hip_l: { x: -20, y: -10 },
+    hip_r: { x: -20, y: -12 },
+    knee_l: { x: -70, y: -59 },
+    knee_r: { x: -24, y: -71 },
+    foot_l: { x: -118, y: -66 },
+    foot_r: { x: -61, y: -111 },
+  },
+  // Frame 16 - Final pose (on back, head up)
+  {
+    head: { x: 27, y: 128 },
+    neck: { x: 24, y: 42 },
+    shoulder_l: { x: 28, y: 45 },
+    shoulder_r: { x: 27, y: 54 },
+    elbow_l: { x: -49, y: 95 },
+    elbow_r: { x: 81, y: 7 },
+    hand_l: { x: -86, y: 50 },
+    hand_r: { x: 72, y: -61 },
+    hip: { x: 12, y: -12 },
+    hip_l: { x: 8, y: -9 },
+    hip_r: { x: 16, y: -11 },
+    knee_l: { x: -52, y: -31 },
+    knee_r: { x: 8, y: -75 },
+    foot_l: { x: -95, y: -82 },
+    foot_r: { x: -23, y: -133 },
+  },
+]
+
+// Wing keyframe data for each pose (2 wings per frame)
+interface WingKeyframe {
+  wing1: { offsetX: number; offsetY: number; rotation: number }
+  wing2: { offsetX: number; offsetY: number; rotation: number }
+}
+
+const wingKeyframes: WingKeyframe[] = [
+  // Frame 1
+  { wing1: { offsetX: -61, offsetY: -46, rotation: -10 }, wing2: { offsetX: -8, offsetY: 79, rotation: 166 } },
+  // Frame 2
+  { wing1: { offsetX: -61, offsetY: -46, rotation: -8 }, wing2: { offsetX: -8, offsetY: 79, rotation: 167 } },
+  // Frame 3
+  { wing1: { offsetX: -61, offsetY: -46, rotation: -6 }, wing2: { offsetX: -8, offsetY: 79, rotation: 165 } },
+  // Frame 4
+  { wing1: { offsetX: -61, offsetY: -46, rotation: -8 }, wing2: { offsetX: -8, offsetY: 79, rotation: 168 } },
+  // Frame 5
+  { wing1: { offsetX: -61, offsetY: -46, rotation: -11 }, wing2: { offsetX: -8, offsetY: 79, rotation: 166 } },
+  // Frame 6
+  { wing1: { offsetX: -61, offsetY: -46, rotation: -16 }, wing2: { offsetX: -8, offsetY: 79, rotation: 166 } },
+  // Frame 7 - NEW
+  { wing1: { offsetX: -66, offsetY: -46, rotation: -18 }, wing2: { offsetX: -12, offsetY: 79, rotation: 169 } },
+  // Frame 8 - NEW
+  { wing1: { offsetX: -66, offsetY: -46, rotation: -21 }, wing2: { offsetX: -25, offsetY: 79, rotation: 177 } },
+  // Frame 9
+  { wing1: { offsetX: -66, offsetY: -46, rotation: -18 }, wing2: { offsetX: -41, offsetY: 79, rotation: 182 } },
+  // Frame 10
+  { wing1: { offsetX: -64, offsetY: -46, rotation: -14 }, wing2: { offsetX: -45, offsetY: 79, rotation: 186 } },
+  // Frame 11
+  { wing1: { offsetX: -47, offsetY: -59, rotation: -4 }, wing2: { offsetX: -45, offsetY: 56, rotation: 197 } },
+  // Frame 12
+  { wing1: { offsetX: -42, offsetY: -59, rotation: 5 }, wing2: { offsetX: -58, offsetY: 56, rotation: 206 } },
+  // Frame 13
+  { wing1: { offsetX: -32, offsetY: -59, rotation: 10 }, wing2: { offsetX: -58, offsetY: 56, rotation: 217 } },
+  // Frame 14
+  { wing1: { offsetX: -32, offsetY: -59, rotation: 10 }, wing2: { offsetX: -58, offsetY: 56, rotation: 217 } },
+  // Frame 15
+  { wing1: { offsetX: -12, offsetY: -59, rotation: 27 }, wing2: { offsetX: -65, offsetY: 56, rotation: 231 } },
+  // Frame 16
+  { wing1: { offsetX: 20, offsetY: -50, rotation: 53 }, wing2: { offsetX: -65, offsetY: 40, rotation: 244 } },
+]
+
+// Starting pose - standing upright (before fall begins)
 const startPose: JointPositions = {
   head: { x: 0, y: -80 },
   neck: { x: 0, y: -50 },
@@ -51,43 +384,98 @@ const startPose: JointPositions = {
   foot_r: { x: 25, y: 90 },
 }
 
-// Mid-fall pose - tumbling
-const midPose: JointPositions = {
-  head: { x: 97, y: -63 },
-  neck: { x: 78, y: -20 },
-  shoulder_l: { x: 77, y: -19 },
-  shoulder_r: { x: 77, y: -20 },
-  elbow_l: { x: 69, y: 45 },
-  elbow_r: { x: 13, y: -33 },
-  hand_l: { x: 3, y: 81 },
-  hand_r: { x: -42, y: -95 },
-  hip: { x: 46, y: 24 },
-  hip_l: { x: -13, y: 59 },
-  hip_r: { x: -12, y: 60 },
-  knee_l: { x: -40, y: -34 },
-  knee_r: { x: -79, y: -4 },
-  foot_l: { x: -138, y: -56 },
-  foot_r: { x: -136, y: 80 },
+// Natural falling easing - different body parts move at different rates
+// Core (hip, neck) moves more directly, extremities (hands, feet) lag/float more
+function naturalFallEase(t: number, isExtremity: boolean): number {
+  if (isExtremity) {
+    // Extremities: slower start, overshoot slightly, settle (like air resistance)
+    // Cubic bezier approximation for floaty motion
+    const overshoot = 1.1
+    const ease = t < 0.5
+      ? 4 * t * t * t
+      : 1 - Math.pow(-2 * t + 2, 3) / 2
+    return ease * (1 + (overshoot - 1) * Math.sin(t * Math.PI))
+  } else {
+    // Core body: smooth ease-in-out, more direct movement
+    return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
+  }
 }
 
-// End pose - flailing
-const endPose: JointPositions = {
-  head: { x: 92, y: 117 },
-  neck: { x: 43, y: 134 },
-  shoulder_l: { x: 18, y: 45 },
-  shoulder_r: { x: 61, y: 41 },
-  elbow_l: { x: 37, y: -54 },
-  elbow_r: { x: 78, y: -43 },
-  hand_l: { x: 57, y: -89 },
-  hand_r: { x: 96, y: -61 },
-  hip: { x: -20, y: 125 },
-  hip_l: { x: -53, y: 84 },
-  hip_r: { x: -91, y: 41 },
-  knee_l: { x: -1, y: -43 },
-  knee_r: { x: -90, y: -70 },
-  foot_l: { x: -91, y: -156 },
-  foot_r: { x: -165, y: -194 },
+// Check if a joint is an extremity (hands, feet) vs core (hip, neck, shoulders)
+function isExtremityJoint(key: keyof JointPositions): boolean {
+  return ['hand_l', 'hand_r', 'foot_l', 'foot_r', 'elbow_l', 'elbow_r', 'knee_l', 'knee_r'].includes(key)
 }
+
+// Helper function to interpolate between two poses with natural falling physics
+function interpolatePoses(poseA: JointPositions, poseB: JointPositions, t: number): JointPositions {
+  const result: Partial<JointPositions> = {}
+  const keys = Object.keys(poseA) as (keyof JointPositions)[]
+  for (const key of keys) {
+    const isExtremity = isExtremityJoint(key)
+    const eased = naturalFallEase(t, isExtremity)
+    result[key] = {
+      x: poseA[key].x + (poseB[key].x - poseA[key].x) * eased,
+      y: poseA[key].y + (poseB[key].y - poseA[key].y) * eased,
+    }
+  }
+  return result as JointPositions
+}
+
+// Generate in-between frames for smoother animation
+function generateInBetweens(keyframes: JointPositions[], framesPerKeyframe: number): JointPositions[] {
+  const result: JointPositions[] = []
+  for (let i = 0; i < keyframes.length - 1; i++) {
+    result.push(keyframes[i])
+    for (let j = 1; j < framesPerKeyframe; j++) {
+      const t = j / framesPerKeyframe
+      result.push(interpolatePoses(keyframes[i], keyframes[i + 1], t))
+    }
+  }
+  result.push(keyframes[keyframes.length - 1])
+  return result
+}
+
+// Generate smooth animation frames (3 in-betweens per keyframe = ~56 total frames)
+const smoothKeyframes = generateInBetweens(fallingKeyframes, 3)
+
+// Interpolate wing keyframes with natural floaty motion (wings catch air)
+function interpolateWings(frameA: WingKeyframe, frameB: WingKeyframe, t: number): WingKeyframe {
+  // Wings have more float/lag since they catch air during fall
+  const overshoot = 1.05
+  const eased = t < 0.5
+    ? 4 * t * t * t
+    : 1 - Math.pow(-2 * t + 2, 3) / 2
+  const finalEase = Math.min(1, eased * (1 + (overshoot - 1) * Math.sin(t * Math.PI * 0.8)))
+
+  return {
+    wing1: {
+      offsetX: frameA.wing1.offsetX + (frameB.wing1.offsetX - frameA.wing1.offsetX) * finalEase,
+      offsetY: frameA.wing1.offsetY + (frameB.wing1.offsetY - frameA.wing1.offsetY) * finalEase,
+      rotation: frameA.wing1.rotation + (frameB.wing1.rotation - frameA.wing1.rotation) * finalEase,
+    },
+    wing2: {
+      offsetX: frameA.wing2.offsetX + (frameB.wing2.offsetX - frameA.wing2.offsetX) * finalEase,
+      offsetY: frameA.wing2.offsetY + (frameB.wing2.offsetY - frameA.wing2.offsetY) * finalEase,
+      rotation: frameA.wing2.rotation + (frameB.wing2.rotation - frameA.wing2.rotation) * finalEase,
+    },
+  }
+}
+
+// Generate smooth wing keyframes
+function generateWingInBetweens(keyframes: WingKeyframe[], framesPerKeyframe: number): WingKeyframe[] {
+  const result: WingKeyframe[] = []
+  for (let i = 0; i < keyframes.length - 1; i++) {
+    result.push(keyframes[i])
+    for (let j = 1; j < framesPerKeyframe; j++) {
+      const t = j / framesPerKeyframe
+      result.push(interpolateWings(keyframes[i], keyframes[i + 1], t))
+    }
+  }
+  result.push(keyframes[keyframes.length - 1])
+  return result
+}
+
+const smoothWingKeyframes = generateWingInBetweens(wingKeyframes, 3)
 
 // Bones connecting joints
 const bones: { from: keyof JointPositions; to: keyof JointPositions }[] = [
@@ -114,13 +502,32 @@ const FallingStickFigure = forwardRef<FallingStickFigureRef, FallingStickFigureP
     const [joints, setJoints] = useState<JointPositions>(startPose)
     const jointsRef = useRef(startPose)
 
+    // Animated attachment overrides (for wing animation)
+    const [animatedAttachments, setAnimatedAttachments] = useState<Attachment[]>([])
+    const wingAnimRef = useRef<{ wing1: { offsetX: number; offsetY: number; rotation: number }; wing2: { offsetX: number; offsetY: number; rotation: number } }>({
+      wing1: { offsetX: -61, offsetY: -46, rotation: -10 },
+      wing2: { offsetX: -8, offsetY: 79, rotation: 166 },
+    })
+
     // Update state when ref changes (for animation)
     useEffect(() => {
       const interval = setInterval(() => {
         setJoints({ ...jointsRef.current })
+        // Update attachments with animated wing values
+        if (attachments.length >= 2) {
+          const updated = attachments.map((att, i) => {
+            if (i === 0) {
+              return { ...att, offsetX: wingAnimRef.current.wing1.offsetX, offsetY: wingAnimRef.current.wing1.offsetY, rotation: wingAnimRef.current.wing1.rotation }
+            } else if (i === 1) {
+              return { ...att, offsetX: wingAnimRef.current.wing2.offsetX, offsetY: wingAnimRef.current.wing2.offsetY, rotation: wingAnimRef.current.wing2.rotation }
+            }
+            return att
+          })
+          setAnimatedAttachments(updated)
+        }
       }, 16) // ~60fps
       return () => clearInterval(interval)
-    }, [])
+    }, [attachments])
 
     useImperativeHandle(ref, () => ({
       startFall: () => {
@@ -141,30 +548,68 @@ const FallingStickFigure = forwardRef<FallingStickFigureRef, FallingStickFigureP
         // Main timeline for figure movement
         const tl = gsap.timeline()
 
-        // Animate joints to mid pose
+        // Create a separate paused timeline for pose animations (so we can pause/resume)
+        const poseTl = gsap.timeline({ paused: true })
+
+        // Animate joints through all smooth keyframes
         const jointKeys = Object.keys(startPose) as (keyof JointPositions)[]
+        // Total pose animation duration (split across both screens)
+        const totalAnimationDuration = 6.0 // Total time for all poses
+        const frameDuration = totalAnimationDuration / (smoothKeyframes.length - 1)
 
-        // Transition to mid pose during first part of fall
+        // Animate each joint through all keyframes on the pose timeline
         jointKeys.forEach(key => {
-          gsap.to(jointsRef.current[key], {
-            x: midPose[key].x,
-            y: midPose[key].y,
-            duration: 2,
-            delay: 0.5,
-            ease: 'power2.inOut',
-          })
+          const keyframeValues = smoothKeyframes.map(frame => ({
+            x: frame[key].x,
+            y: frame[key].y,
+          }))
+
+          // Create keyframe animation for x
+          poseTl.to(jointsRef.current[key], {
+            keyframes: keyframeValues.map((val, i) => ({
+              x: val.x,
+              duration: frameDuration,
+              ease: i === 0 ? 'none' : 'power1.inOut',
+            })),
+          }, 0) // All joints start at time 0
+
+          // Create keyframe animation for y
+          poseTl.to(jointsRef.current[key], {
+            keyframes: keyframeValues.map((val, i) => ({
+              y: val.y,
+              duration: frameDuration,
+              ease: i === 0 ? 'none' : 'power1.inOut',
+            })),
+          }, 0)
         })
 
-        // Transition to end pose (on back, head up) - continues through both screens
-        jointKeys.forEach(key => {
-          gsap.to(jointsRef.current[key], {
-            x: endPose[key].x,
-            y: endPose[key].y,
-            duration: 3,
-            delay: 3,
-            ease: 'power2.inOut',
-          })
-        })
+        // Animate wing attachments on pose timeline
+        const wingFrameDuration = totalAnimationDuration / (smoothWingKeyframes.length - 1)
+
+        // Wing 1 animation
+        poseTl.to(wingAnimRef.current.wing1, {
+          keyframes: smoothWingKeyframes.map((frame, i) => ({
+            offsetX: frame.wing1.offsetX,
+            offsetY: frame.wing1.offsetY,
+            rotation: frame.wing1.rotation,
+            duration: wingFrameDuration,
+            ease: i === 0 ? 'none' : 'power1.inOut',
+          })),
+        }, 0)
+
+        // Wing 2 animation
+        poseTl.to(wingAnimRef.current.wing2, {
+          keyframes: smoothWingKeyframes.map((frame, i) => ({
+            offsetX: frame.wing2.offsetX,
+            offsetY: frame.wing2.offsetY,
+            rotation: frame.wing2.rotation,
+            duration: wingFrameDuration,
+            ease: i === 0 ? 'none' : 'power1.inOut',
+          })),
+        }, 0)
+
+        // Start pose animation after small delay
+        gsap.delayedCall(0.3, () => poseTl.play())
 
         // Single smooth fall through first screen
         tl.to(figureRef.current, {
@@ -174,6 +619,9 @@ const FallingStickFigure = forwardRef<FallingStickFigureRef, FallingStickFigureP
           duration: 3.5,
           ease: 'power2.in',
           onComplete: () => {
+            // PAUSE pose animation when going off-screen
+            poseTl.pause()
+
             onReachBottom?.()
 
             // Reset to above screen - no rotation
@@ -192,6 +640,10 @@ const FallingStickFigure = forwardRef<FallingStickFigureRef, FallingStickFigureP
           y: '110vh',
           scale: 1.8,
           duration: 4.5,
+          onStart: () => {
+            // RESUME pose animation when back on screen
+            poseTl.play()
+          },
           ease: 'power1.in',
         })
 
@@ -233,7 +685,7 @@ const FallingStickFigure = forwardRef<FallingStickFigureRef, FallingStickFigureP
           }}
         >
           {/* Attachments BEHIND body (zIndex < 0) */}
-          {attachments.filter(a => a.zIndex < 0).map(att => {
+          {(animatedAttachments.length > 0 ? animatedAttachments : attachments).filter(a => a.zIndex < 0).map(att => {
             const jointKey = att.jointId as keyof JointPositions
             const joint = joints[jointKey]
             if (!joint) return null
@@ -268,7 +720,7 @@ const FallingStickFigure = forwardRef<FallingStickFigureRef, FallingStickFigureP
             r={25}
             fill="none"
             stroke="white"
-            strokeWidth="2"
+            strokeWidth="4" // Adjust line thickness here
           />
 
           {/* Bones/Lines */}
@@ -280,13 +732,13 @@ const FallingStickFigure = forwardRef<FallingStickFigureRef, FallingStickFigureP
               x2={joints[bone.to].x}
               y2={joints[bone.to].y}
               stroke="white"
-              strokeWidth="2"
+              strokeWidth="4" // Adjust line thickness here
               strokeLinecap="round"
             />
           ))}
 
           {/* Attachments IN FRONT of body (zIndex > 0) */}
-          {attachments.filter(a => a.zIndex > 0).map(att => {
+          {(animatedAttachments.length > 0 ? animatedAttachments : attachments).filter(a => a.zIndex > 0).map(att => {
             const jointKey = att.jointId as keyof JointPositions
             const joint = joints[jointKey]
             if (!joint) return null
